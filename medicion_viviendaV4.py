@@ -35,7 +35,7 @@ class PDFInforme(FPDF):
     def footer(self):
         self.set_y(-15)
         self.set_font("Helvetica", "I", 8)
-        self.cell(0, 10, f"Página {self.page_no()}", align="C")
+        self.cell(0, 10, texto_pdf_seguro(f"Página {self.page_no()}"), align="C")
 
 
 def generar_pdf_bytes(
@@ -85,7 +85,6 @@ def generar_pdf_bytes(
 
     pdf.set_font("Helvetica", "", 9)
     for e in estancias:
-        # Si queda poco espacio en la página, salta y repite cabecera de tabla
         if pdf.get_y() > 265:
             pdf.add_page()
             dibujar_cabecera_tabla()
@@ -104,20 +103,19 @@ def generar_pdf_bytes(
             pdf.cell(w, 7, val, border=1, align="L" if idx == 0 else "R")
         pdf.ln()
 
-    # Fila de totales
     if pdf.get_y() > 265:
         pdf.add_page()
 
     pdf.set_font("Helvetica", "B", 9)
     pdf.cell(sum(anchos[:4]), 8, "TOTALES GENERALES", border=1, align="R")
     pdf.cell(
-        anchos, 8, f"{tot_paredes:.2f} m2".replace(".", ","), border=1, align="R"
+        anchos[4], 8, f"{tot_paredes:.2f} m2".replace(".", ","), border=1, align="R"
     )
     pdf.cell(
-        anchos, 8, f"{tot_suelos:.2f} m2".replace(".", ","), border=1, align="R"
+        anchos[5], 8, f"{tot_suelos:.2f} m2".replace(".", ","), border=1, align="R"
     )
     pdf.cell(
-        anchos, 8, f"{tot_techos:.2f} m2".replace(".", ","), border=1, align="R"
+        anchos[6], 8, f"{tot_techos:.2f} m2".replace(".", ","), border=1, align="R"
     )
 
     return bytes(pdf.output())
@@ -188,7 +186,7 @@ def generar_excel_bytes(
         cell.font = Font(bold=True)
         cell.number_format = "0.00"
 
-    # Ajuste automático de ancho de columnas (ignorando filas de título A1:A4)
+    # Ajuste automático de ancho de columnas
     for col_idx in range(1, len(headers) + 1):
         col_letter = get_column_letter(col_idx)
         max_len = 0
@@ -209,7 +207,6 @@ st.title("📐 Medición de Vivienda")
 if "estancias" not in st.session_state:
     st.session_state.estancias = []
 
-# Bloque de datos de cabecera
 with st.expander("📋 Datos del proyecto / cabecera (Opcional)", expanded=False):
     c_cli, c_fec = st.columns(2)
     with c_cli:
@@ -244,7 +241,6 @@ with st.form("form_estancia", clear_on_submit=True):
     seleccion = st.selectbox("Estancia", opciones)
     nombre_custom = st.text_input("Nombre personalizado (si elegiste 'Otra')")
 
-    # st.number_input despliega el teclado numérico en móviles y acepta coma o punto
     col1, col2, col3 = st.columns(3)
     with col1:
         largo = st.number_input(
@@ -307,7 +303,6 @@ if st.session_state.estancias:
         key="editor_estancias",
     )
 
-    # Recalcular superficies si el usuario editó largo, ancho o alto en la tabla
     nuevas_estancias = []
     for _, row in df_editado.iterrows():
         if pd.notna(row["Largo (m)"]) and pd.notna(row["Ancho (m)"]) and pd.notna(row["Altura (m)"]):
